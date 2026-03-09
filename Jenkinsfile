@@ -2,48 +2,68 @@ pipeline {
     agent any
 
     parameters {
-        choice(
-            name: 'DEBUG_MODE',
-            choices: ['NONE', 'TMATE', 'DIRECT_SSHD'],
-            description: 'Enable debug mode'
+        booleanParam(
+            name: 'ENABLE_DEBUG',
+            defaultValue: false,
+            description: 'Enable SSH debugging session'
         )
+    }
+
+    environment {
+        DOCKER_HOST = "tcp://192.168.1.39:2375"
+        IMAGE_NAME = "jenkins-debug-image"
+        CONTAINER_NAME = "jenkins-debug-container"
     }
 
     stages {
 
-        stage('Checkout') {
-            steps {
-                checkout scm
-            }
-        }
-
         stage('Build Docker Image') {
             steps {
-                script {
-                    docker.build("jenkins-debug-image")
-                }
+                sh '''
+                docker -H $DOCKER_HOST build -t $IMAGE_NAME .
+                '''
             }
         }
 
-        stage('Run Build Container') {
+        stage('Start Container') {
             steps {
-                script {
-
-                    docker.image("jenkins-debug-image").inside {
-
-                        if (params.DEBUG_MODE == "TMATE") {
-                            sh "bash scripts/start_tmate_debug.sh"
-                        }
-
-                        if (params.DEBUG_MODE == "DIRECT_SSHD") {
-                            sh "bash scripts/start_direct_sshd_debug.sh"
-                        }
-
-                        sh "python app/main.py"
-                        sh "python -m pytest app/test_main.py"
-                    }
-                }
+                sh '''
+                docker -H $DOCKER_HOST run -d \
+                --name $CONTAINER_NAME \
+                $IMAGE_NAME sleep infinity
+                '''
             }
+        }
+
+        stage('Enable SSH Debug') {
+            when {
+                expression { params.ENABLE_DEBUG }
+            }
+
+            steps {
+                sh '''
+                docker -H $DOCKER_HOST exec $CONTAINER_NAME \
+                /scripts/start_tmate_debug.sh
+                '''
+            }
+        }
+
+        stage('Run Tests') {
+            steps {
+                sh '''
+                docker -H $DOCKER_HOST exec $CONTAINER_NAME \
+                python /app/test_main.py
+                '''
+            }
+        }
+
+    }
+
+    post {
+        always {
+            sh '''
+            docker -H $DOCKER_HOST rm -f $CONTAINER_NAME || true
+            '''
         }
     }
 }
