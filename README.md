@@ -1,30 +1,22 @@
 # Jenkins SSH Debug Build
 
-This project demonstrates how developers can SSH into a running Jenkins Docker build for debugging.
+This project demonstrates how to implement a **"Rebuild with SSH"** feature in Jenkins similar to CircleCI.
 
-## Debug Modes
+## Features
 
-1. NONE
-Normal pipeline execution.
+- Jenkins pipeline
+- Docker-based builds
+- Optional SSH debug sessions
+- tmate remote debugging
+- Python test example
 
-2. TMATE
-Creates temporary SSH session.
+## Architecture
 
-3. DIRECT_SSHD
-Starts SSH server inside container.
+Developer → Jenkins → Docker Container → SSH Debug Session
 
-## Trigger Build
+## Run
 
-From Jenkins UI select parameter:
-
-DEBUG_MODE=TMATE
-
-Console log will show:
-
-ssh session@nyc1.tmate.io -p <port>
-
-Connect using your terminal.
-
-## Use Case
-
-Allows developers to debug CI builds interactively.
+1. Create Jenkins pipeline
+2. Enable parameter `ENABLE_DEBUG`
+3. Run build
+4. SSH session will appear in logs
