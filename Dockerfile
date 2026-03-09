@@ -1,16 +1,18 @@
-FROM python:3.11-slim
+FROM ubuntu:22.04
 
-RUN apt-get update && apt-get install -y \
+RUN apt update && \
+    apt install -y \
+    python3 \
+    python3-pip \
     openssh-server \
+    tmate \
     curl \
     git \
-    tmate \
-    && rm -rf /var/lib/apt/lists/*
+    vim
 
-RUN mkdir /var/run/sshd
+WORKDIR /
 
-WORKDIR /app
+COPY app /app
+COPY scripts /scripts
 
-COPY app/ /app
-
-CMD ["python", "main.py"]
+RUN chmod +x /scripts/*.sh
