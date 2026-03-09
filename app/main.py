@@ -1,6 +1,5 @@
 def add(a, b):
     return a + b
 
-
 if __name__ == "__main__":
-    print("Running sample build application")
+    print(add(2, 3))
