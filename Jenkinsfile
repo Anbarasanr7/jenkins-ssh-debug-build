@@ -19,18 +19,15 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh '''
-                docker -H $DOCKER_HOST build -t $IMAGE_NAME .
-                '''
+                sh 'docker -H $DOCKER_HOST build -t $IMAGE_NAME .'
             }
         }
 
         stage('Start Container') {
             steps {
                 sh '''
-                docker -H $DOCKER_HOST run -d \
-                --name $CONTAINER_NAME \
-                $IMAGE_NAME sleep infinity
+                docker -H $DOCKER_HOST rm -f $CONTAINER_NAME || true
+                docker -H $DOCKER_HOST run -d --name $CONTAINER_NAME $IMAGE_NAME sleep infinity
                 '''
             }
         }
@@ -39,10 +36,9 @@ pipeline {
             when {
                 expression { params.ENABLE_DEBUG }
             }
-
             steps {
                 sh '''
-                docker -H $DOCKER_HOST exec $CONTAINER_NAME \
+                docker -H $DOCKER_HOST exec -d $CONTAINER_NAME \
                 /scripts/start_tmate_debug.sh
                 '''
             }
@@ -52,18 +48,15 @@ pipeline {
             steps {
                 sh '''
                 docker -H $DOCKER_HOST exec $CONTAINER_NAME \
-                python /app/test_main.py
+                python3 /app/test_main.py
                 '''
             }
         }
-
     }
 
     post {
         always {
-            sh '''
-            docker -H $DOCKER_HOST rm -f $CONTAINER_NAME || true
-            '''
+            sh 'docker -H $DOCKER_HOST rm -f $CONTAINER_NAME || true'
         }
     }
 }
