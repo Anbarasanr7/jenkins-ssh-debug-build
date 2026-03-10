@@ -38,8 +38,23 @@ pipeline {
             }
             steps {
                 sh '''
-                docker -H $DOCKER_HOST exec -d $CONTAINER_NAME \
-                /scripts/start_tmate_debug.sh
+                echo "Starting tmate debug session..."
+
+                docker -H $DOCKER_HOST exec -d $CONTAINER_NAME /scripts/start_tmate_debug.sh
+
+                echo "Waiting for tmate session to initialize..."
+                sleep 5
+
+                echo "========================================"
+                echo "SSH Debug Session:"
+                docker -H $DOCKER_HOST exec $CONTAINER_NAME tmate display -p '#{tmate_ssh}' || true
+
+                echo ""
+                echo "Web Debug Session:"
+                docker -H $DOCKER_HOST exec $CONTAINER_NAME tmate display -p '#{tmate_web}' || true
+                echo "========================================"
+
+                echo "You can connect using the SSH command above."
                 '''
             }
         }
