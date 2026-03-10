@@ -19,15 +19,18 @@ pipeline {
 
         stage('Build Docker Image') {
             steps {
-                sh 'docker -H $DOCKER_HOST build -t $IMAGE_NAME .'
+                sh '''
+                docker -H $DOCKER_HOST build -t $IMAGE_NAME .
+                '''
             }
         }
 
         stage('Start Container') {
             steps {
                 sh '''
-                docker -H $DOCKER_HOST rm -f $CONTAINER_NAME || true
-                docker -H $DOCKER_HOST run -d --name $CONTAINER_NAME $IMAGE_NAME sleep infinity
+                docker -H $DOCKER_HOST run -d \
+                --name $CONTAINER_NAME \
+                $IMAGE_NAME sleep infinity
                 '''
             }
         }
@@ -36,25 +39,11 @@ pipeline {
             when {
                 expression { params.ENABLE_DEBUG }
             }
+
             steps {
                 sh '''
-                echo "Starting tmate debug session..."
-
-                docker -H $DOCKER_HOST exec -d $CONTAINER_NAME /scripts/start_tmate_debug.sh
-
-                echo "Waiting for tmate session to initialize..."
-                sleep 5
-
-                echo "========================================"
-                echo "SSH Debug Session:"
-                docker -H $DOCKER_HOST exec $CONTAINER_NAME tmate display -p '#{tmate_ssh}' || true
-
-                echo ""
-                echo "Web Debug Session:"
-                docker -H $DOCKER_HOST exec $CONTAINER_NAME tmate display -p '#{tmate_web}' || true
-                echo "========================================"
-
-                echo "You can connect using the SSH command above."
+                docker -H $DOCKER_HOST exec $CONTAINER_NAME \
+                /scripts/start_tmate_debug.sh
                 '''
             }
         }
@@ -63,15 +52,18 @@ pipeline {
             steps {
                 sh '''
                 docker -H $DOCKER_HOST exec $CONTAINER_NAME \
-                python3 /app/test_main.py
+                python /app/test_main.py
                 '''
             }
         }
+
     }
 
     post {
         always {
-            sh 'docker -H $DOCKER_HOST rm -f $CONTAINER_NAME || true'
+            sh '''
+            docker -H $DOCKER_HOST rm -f $CONTAINER_NAME || true
+            '''
         }
     }
 }
